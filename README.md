@@ -3,7 +3,7 @@
 
 
 # How To Use
-## To use BaseInterface, First you should inherit this interface on your project and after that pass interface Model and Type FKey interface Model in same place you inherited in.
+## To use BaseInterface, First you should inherit this interface on your project and after that, pass interface Model and type FKey interface Model where you inherited the interface.
 
 
 
