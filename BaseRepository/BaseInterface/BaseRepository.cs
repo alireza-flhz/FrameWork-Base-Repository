@@ -21,13 +21,14 @@ namespace BaseRepository.BaseInterface
             accessor = _accessor;
             _model = _context.Set<TModel>();
         }
-        public virtual async Task<OperationResult> AddAsync(TModel model)
+        public virtual async Task<OperationResult<TModel>> AddAsync(TModel model)
         {
-            var res = new OperationResult(_model.ToString());
+            var res = new OperationResult<TModel>(_model.ToString());
             try
             {
                 await _model.AddAsync(model);
                 res.Success = true;
+                res.Model = Model;
                 return res;
             }
             catch (Exception ex)
@@ -36,7 +37,7 @@ namespace BaseRepository.BaseInterface
                 return res;
             }
         }
-        public virtual TModel Update(TModel model)
+        public virtual OperationResult<TModel> Update(TModel model)
         {
             var res = new OperationResult(_model.ToString());
             try
@@ -44,15 +45,16 @@ namespace BaseRepository.BaseInterface
                 _context.Set<TModel>().Attach(model);
                 _context.Entry(model).State = EntityState.Modified;
                 res.Success = true;
-                return model;
+                rs.Model = model;
+                return res;
             }
             catch (Exception ex)
             {
                 res.Message = ex.Message;
-                return model;
+                return res;
             }
         }
-        public virtual async Task<OperationResult> DeleteAsync(TModel model)
+        public virtual async Task<OperationResult<TModel>> DeleteAsync(TModel model)
         {
             var res = new OperationResult(_model.ToString());
             try
@@ -61,6 +63,7 @@ namespace BaseRepository.BaseInterface
                 await SaveAsync();
 
                 res.Success = true;
+                res.Model = model;
                 return res;
             }
             catch (Exception ex)
@@ -69,7 +72,7 @@ namespace BaseRepository.BaseInterface
                 return res;
             }
         }
-        public virtual async Task<OperationResult> DeleteAllAsync(IQueryable<TModel> deleteModels)
+        public virtual async Task<OperationResult<TModel>> DeleteAllAsync(IQueryable<TModel> deleteModels)
         {
             var res = new OperationResult(_model.ToString());
             try
@@ -85,7 +88,7 @@ namespace BaseRepository.BaseInterface
                 return res;
             }
         }
-        public virtual async Task<OperationResult> DeleteAsync(TKey id)
+        public virtual async Task<OperationResult<TModel>> DeleteAsync(TKey id)
         {
             var res = new OperationResult(_model.ToString());
 
@@ -97,6 +100,7 @@ namespace BaseRepository.BaseInterface
                     _model.Remove(model);
                     await SaveAsync();
                     res.Success = true;
+                    res.Model = model;
                     return res;
                 }
                 else
@@ -109,10 +113,28 @@ namespace BaseRepository.BaseInterface
             }
             return res;
         }
-        public async Task<TModel> GetAsync(TKey id)
+        public virtual async Task<OperationResult<TModel>> GetAsync(TKey id)
         {
-            var model = await _model.FindAsync(id);
-            return model;
+            var res = new OperationResult(_model.ToString());
+            try
+            {
+                var model = await _model.FindAsync(id);
+                if (model != null)
+                {
+                    res.Success = true;
+                    res.Model = model;
+                }
+                else
+                {
+                    res.Message = "Model was not Found";
+                }
+                return res;
+            }
+            catch (System.Exception ex)
+            {
+                res.Message = ex;
+                return res;
+            }
         }
         public IQueryable<TModel> GetAllAsQueryable(bool asNoTracking = false)
         {
@@ -122,7 +144,6 @@ namespace BaseRepository.BaseInterface
         {
             return asNoTracking ? _model.AsNoTracking().AsEnumerable().Where(predicate).AsQueryable() : _model.Where(predicate).AsQueryable();
         }
-
         public IQueryable<TModel> AllIncluding(Func<IQueryable<TModel>, IIncludableQueryable<TModel, object>> include = null, bool asNoTracking = false)
         {
             IQueryable<TModel> query = asNoTracking ? _model.AsNoTracking().AsQueryable() : _model.AsQueryable();
@@ -131,7 +152,6 @@ namespace BaseRepository.BaseInterface
 
             return query;
         }
-
         public TModel GetInclude(Func<IQueryable<TModel>, IIncludableQueryable<TModel, object>> include, Func<TModel, bool> predicate)
         {
             IQueryable<TModel> query = _model.AsQueryable();
@@ -147,7 +167,6 @@ namespace BaseRepository.BaseInterface
             //return await (include(_model) as DbSet<TModel>).FindAsync(key);
             //return model;
         }
-
         public async Task<OperationResult> SaveAsync()
         {
             var res = new OperationResult(_model.ToString());
@@ -169,7 +188,6 @@ namespace BaseRepository.BaseInterface
         {
             // throw new NotImplementedException();
         }
-
         public IQueryable<TModel> Paginated(int pageSize, IQueryable<TModel> Models, int pageIndex = 1, bool asNoTracking = false)
         {
             return Models.Skip((pageIndex - 1) * pageSize).Take(pageSize);
