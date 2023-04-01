@@ -1,6 +1,5 @@
 # FrameWork-Base-Repository
-## To use this class after downloading and adding it to your project. Put your project class instead of "YourContext"(Add ProjectContext Refrence to Package and change  Two Refrence of Context in BaseRepository)
-
+## To use this class, first download it and add it to your project, then replace your project class with "YourContext" (add ProjectContext reference to Package and change this two references of Context in BaseRepository).
 
 
 # How To Use
