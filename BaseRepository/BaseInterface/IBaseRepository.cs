@@ -10,17 +10,15 @@ namespace BaseRepository.BaseInterface
 {
     public interface IBaseRepository<TModel, in TKey> : IDisposable where TModel : class
     {
-        Task<OperationResult> AddAsync(TModel model);
-        TModel Update(TModel model);
-        Task<OperationResult> DeleteAsync(TModel model);
-        Task<OperationResult> DeleteAllAsync(IQueryable<TModel> deleteModels);
-        Task<OperationResult> DeleteAsync(TKey id);
-        Task<TModel> GetAsync(TKey id);
-        IQueryable<TModel> GetAllAsQueryable(bool asNoTracking = false);
-        IQueryable<TModel> GetAllAsQueryable(Func<TModel, bool> predicate, bool asNoTracking = false);
-        IQueryable<TModel> AllIncluding(Func<IQueryable<TModel>, IIncludableQueryable<TModel, object>> include = null, bool asNoTracking = false);
-        IQueryable<TModel> Paginated(int pageSize, IQueryable<TModel> Models, int pageIndex = 1, bool asNoTracking = false);
-        Task<OperationResult> SaveAsync();
-        TModel GetInclude(Func<IQueryable<TModel>, IIncludableQueryable<TModel, object>> include, Func<TModel, bool> predicate);
+        Task<OperationResult<TModel>> AddAsync(TModel model);
+        OperationResult<TModel> Update(TModel model);
+        Task<OperationResult<TModel>> DeleteAsync(TModel model);
+        Task<OperationResult<TModel>> DeleteAllAsync(IQueryable<TModel> deleteModels);
+        Task<OperationResult<TModel>> DeleteAsync(TKey id);
+        OperationResult<TModel> GetAsync(TKey id);
+        Task<OperationResult<IQueryable<TModel>>> GetAllAsQueryable(bool asNoTracking = false);
+        Task<OperationResult<IQueryable<TModel>>> AllIncluding(Func<IQueryable<TModel>, IIncludableQueryable<TModel, object>> include = null, bool asNoTracking = false);
+        Task<OperationResult<IQueryable<TModel>>> Paginated(int pageSize, IQueryable<TModel> Models, int pageIndex = 1, bool asNoTracking = false);
+        Task<OperationResult<TModel>> SaveAsync();
     }
 }

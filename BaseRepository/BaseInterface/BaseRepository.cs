@@ -136,38 +136,55 @@ namespace BaseRepository.BaseInterface
                 return res;
             }
         }
-        public IQueryable<TModel> GetAllAsQueryable(bool asNoTracking = false)
+        public Task<OperationResult<IQueryable<TModel>>> GetAllAsQueryable(bool asNoTracking = false)
         {
-            return asNoTracking ? _model.AsNoTracking().AsQueryable() : _model.AsQueryable();
-        }
-        public IQueryable<TModel> GetAllAsQueryable(Func<TModel, bool> predicate, bool asNoTracking = false)
-        {
-            return asNoTracking ? _model.AsNoTracking().AsEnumerable().Where(predicate).AsQueryable() : _model.Where(predicate).AsQueryable();
-        }
-        public IQueryable<TModel> AllIncluding(Func<IQueryable<TModel>, IIncludableQueryable<TModel, object>> include = null, bool asNoTracking = false)
-        {
-            IQueryable<TModel> query = asNoTracking ? _model.AsNoTracking().AsQueryable() : _model.AsQueryable();
-            if (include != null)
-                query = include(query);
 
-            return query;
-        }
-        public TModel GetInclude(Func<IQueryable<TModel>, IIncludableQueryable<TModel, object>> include, Func<TModel, bool> predicate)
-        {
-            IQueryable<TModel> query = _model.AsQueryable();
-            query = include(query);
-            query = query.Where(predicate).AsQueryable();
+            var res = new OperationResult(_model.ToString());
+            try
+            {
 
-            var res = query.FirstOrDefault();
-            return res;
-            //IQueryable<TModel> query = _model.AsQueryable();
-            // query = include(query);
-            //query = query.Where(predicate).AsQueryable()
-            //var res2 = res.FindAsync(key);
-            //return await (include(_model) as DbSet<TModel>).FindAsync(key);
-            //return model;
+                if (asNoTracking)
+                {
+                    res.Model = _model.AsNoTracking().AsQueryable();
+                    res.Success = true;
+
+                }
+                else
+                {
+                    res.Model = _model.AsQueryable();
+                    res.Success = true;
+                }
+                return res;
+
+            }
+            catch (System.Exception ex)
+            {
+                res.Message = ex;
+                return res;
+            }
         }
-        public async Task<OperationResult> SaveAsync()
+        public Task<OperationResult<IQueryable<TModel>>> AllIncluding(Func<IQueryable<TModel>, IIncludableQueryable<TModel, object>> include = null, bool asNoTracking = false)
+        {
+
+            var res = new OperationResult(_model.ToString());
+            try
+            {
+                IQueryable<TModel> query = asNoTracking ? _model.AsNoTracking().AsQueryable() : _model.AsQueryable();
+                if (include != null)
+                    query = include(query);
+                res.Model = query;
+                res.Success = true;
+                return res;
+
+            }
+            catch (System.Exception ex)
+            {
+                res.Message = ex;
+                return res;
+            }
+
+        }
+        public async Task<OperationResult<TModel>> SaveAsync()
         {
             var res = new OperationResult(_model.ToString());
             try
