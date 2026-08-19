@@ -94,11 +94,12 @@ public class EfRepositoryTests : IDisposable
         await _repository.AddAsync(new TestEntity { Name = "cherry" });
         await _database.Context.SaveChangesAsync();
 
-        var spec = new TestEntitiesByNameSpecification(nameContains: "an");
+        var spec = new TestEntitiesByNameSpecification(nameContains: "a");
         var results = await _repository.ListAsync(spec);
 
         Assert.Equal(2, results.Count);
-        Assert.Equal("banana", results[0].Name);
+        Assert.Equal("apple", results[0].Name);
+        Assert.Equal("banana", results[1].Name);
     }
 
     [Fact]

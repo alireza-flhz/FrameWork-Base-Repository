@@ -21,7 +21,7 @@ public class CreateCommandHandler<TEntity, TKey, TDto> : IRequestHandler<CreateC
 
     public async Task<TDto> Handle(CreateCommand<TEntity, TKey, TDto> request, CancellationToken cancellationToken)
     {
-        var entity = request.Dto.Adapt<TEntity>();
+        var entity = request.Dto.Adapt<TEntity>()!;
 
         await _repository.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
