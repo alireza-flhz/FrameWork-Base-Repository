@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>BaseRepository.Api</RootNamespace>
+    <AssemblyName>BaseRepository.Api</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Application\BaseRepository.Application.csproj" />
+    <ProjectReference Include="..\Infrastructure\BaseRepository.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
