@@ -1,11 +1,13 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Asp.Versioning;
 using BaseRepository.Application.Cqrs;
 using BaseRepository.Application.Cqrs.Commands;
 using BaseRepository.Application.Cqrs.Queries;
 using BaseRepository.Application.Messaging;
 using BaseRepository.Domain.Common;
 using BaseRepository.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,9 +16,16 @@ namespace BaseRepository.Api.Controllers;
 /// <summary>
 /// Full REST CRUD for one entity, routed through the generic CQRS handlers from
 /// BaseRepository.Application.Cqrs. Derive a concrete controller with its own [Route], e.g.
-/// <c>[Route("api/products")] public class ProductsController : BaseCrudController&lt;Product,int,ProductDto&gt;</c>.
+/// <c>[Route("api/v{version:apiVersion}/products")] public class ProductsController : BaseCrudController&lt;Product,int,ProductDto&gt;</c>.
+/// Requires authentication by default (secure by default) - add [AllowAnonymous] on your
+/// concrete controller, or on individual actions, to open specific endpoints up. Not cached
+/// by default: caching an [Authorize]-protected response without varying the cache key by
+/// user is a data-leak risk, so that's left as an explicit, informed choice per endpoint
+/// rather than something this base class does for you.
 /// </summary>
 [ApiController]
+[ApiVersion("1.0")]
+[Authorize]
 public abstract class BaseCrudController<TEntity, TKey, TDto> : ControllerBase
     where TEntity : BaseEntity<TKey>
 {
