@@ -62,16 +62,44 @@ integration tests for Infrastructure, functional tests for the API via
 - `DomainException` and its `NotFoundException` / `ConflictException` /
   `BusinessRuleException` subtypes — the vocabulary the API layer will
   translate into HTTP status codes starting Phase 3.
+- `BaseEntity<TKey>` (`BaseRepository.Domain.Entities`) — the base every
+  entity derives from. `IAuditableEntity` / `ISoftDelete` are opt-in
+  interfaces an entity implements to get automatic audit stamping /
+  soft-delete, handled entirely by Infrastructure.
+
+## Persistence (Application + Infrastructure)
+
+- **Specification pattern** (`BaseRepository.Application.Specifications`) —
+  derive from `Specification<T>` to describe a filter/include/order/paging
+  query without referencing EF Core. `SpecificationEvaluator<T>`
+  (Infrastructure) turns it into an `IQueryable<T>`.
+- **`IRepository<TEntity, TKey>`** (`BaseRepository.Application.Abstractions`)
+  — `GetByIdAsync`, `ListAsync`, `PaginatedListAsync`, `CountAsync`,
+  `AnyAsync`, `AddAsync`, `Update`, `Remove`. Add/Update/Remove only stage
+  changes; call `IUnitOfWork.SaveChangesAsync()` to persist.
+- **`EfRepository<TEntity, TKey>`** (Infrastructure) — the generic EF Core
+  implementation. Works with *any* `DbContext`; register it via
+  `services.AddPersistence<TContext>(options => options.UseSqlite(...))`
+  once your project has one.
+- **`BaseDbContext`** (Infrastructure, optional) — inherit it to get a global
+  query filter that hides `ISoftDelete` rows automatically.
+- **`AuditableEntitySaveChangesInterceptor`** (Infrastructure) — stamps
+  `CreatedAt`/`LastModifiedAt` on `IAuditableEntity` entities and turns a
+  staged delete of an `ISoftDelete` entity into an update instead of an
+  actual row deletion.
+
+All of this is proven end-to-end against a real SQLite database in
+`BaseRepository.Infrastructure.IntegrationTests` — see `EfRepositoryTests`.
 
 ## Roadmap
 
 - [x] **Phase 0 — Foundations & solution skeleton.** Layered projects, central
       package management, `Result<T>`/`PagedResult<T>`, base exceptions,
-      health-check endpoint, a test project per layer. *(this commit)*
-- [ ] **Phase 1 — Domain & persistence core.** `BaseEntity<TKey>`,
-      auditing/soft-delete interfaces, Specification pattern
-      (`ISpecification<T>`), generic `IRepository<T,TKey>` in Application with
-      an EF Core implementation + `UnitOfWork` in Infrastructure.
+      health-check endpoint, a test project per layer.
+- [x] **Phase 1 — Domain & persistence core.** `BaseEntity<TKey>`,
+      auditing/soft-delete interfaces, Specification pattern, generic
+      `IRepository<T,TKey>` + EF Core implementation + `UnitOfWork`.
+      *(this commit)*
 - [ ] **Phase 2 — Generic CQRS.** MediatR-based generic
       Create/Update/Delete/GetById/GetList handlers, FluentValidation,
       mapping, pipeline behaviors — adding an entity should only require a DTO.

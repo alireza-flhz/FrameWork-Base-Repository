@@ -1,16 +1,47 @@
+using System;
+using BaseRepository.Application.Abstractions;
+using BaseRepository.Infrastructure.Persistence;
+using BaseRepository.Infrastructure.Persistence.Interceptors;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BaseRepository.Infrastructure;
 
-/// <summary>
-/// DbContext, generic repository, specification evaluator and UnitOfWork registrations
-/// land here starting Phase 1.
-/// </summary>
 public static class DependencyInjection
 {
+    /// <summary>
+    /// Cross-cutting infrastructure services that don't need a DbContext (email, file
+    /// storage, external clients, ...) land here in later phases.
+    /// </summary>
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        return services;
+    }
+
+    /// <summary>
+    /// Wires EF Core persistence for <typeparamref name="TContext"/>: the audit/soft-delete
+    /// interceptor, the generic repository, and the unit of work. Call this once your project
+    /// has a concrete <see cref="DbContext"/>, e.g.
+    /// <c>services.AddPersistence&lt;AppDbContext&gt;(options => options.UseSqlite(connectionString));</c>
+    /// </summary>
+    public static IServiceCollection AddPersistence<TContext>(
+        this IServiceCollection services,
+        Action<DbContextOptionsBuilder> configureDbContext)
+        where TContext : DbContext
+    {
+        services.AddSingleton<AuditableEntitySaveChangesInterceptor>();
+
+        services.AddDbContext<TContext>((sp, options) =>
+        {
+            configureDbContext(options);
+            options.AddInterceptors(sp.GetRequiredService<AuditableEntitySaveChangesInterceptor>());
+        });
+
+        services.AddScoped<DbContext>(sp => sp.GetRequiredService<TContext>());
+        services.AddScoped(typeof(IRepository<,>), typeof(EfRepository<,>));
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
         return services;
     }
 }
