@@ -16,6 +16,7 @@
     <!-- CQRS: mapping and validation (both permissively licensed - see README) -->
     <PackageVersion Include="Mapster" Version="10.0.12" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
 
     <!-- API: OpenAPI document generation (built-in, MIT) + Scalar UI (MIT) -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />

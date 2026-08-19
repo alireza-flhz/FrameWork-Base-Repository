@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using BaseRepository.Application;
 using BaseRepository.Application.Cqrs.Commands;
 using BaseRepository.Infrastructure;
@@ -22,6 +24,12 @@ public class SampleWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
 
+    // Program.cs's own AppDbContext (the TodoItem sample) still spins up in every test host
+    // built from this factory, even for tests that have nothing to do with it. Point it at an
+    // isolated temp file per factory instance instead of the shared default app.db, so parallel
+    // test classes (each gets its own factory) don't collide on the same SQLite file.
+    private readonly string _appDbPath = Path.Combine(Path.GetTempPath(), $"basecrud-apptests-{Guid.NewGuid():N}.db");
+
     public SampleWebApplicationFactory()
     {
         _connection.Open();
@@ -35,7 +43,8 @@ public class SampleWebApplicationFactory : WebApplicationFactory<Program>
             {
                 ["Jwt:Issuer"] = TestJwt.Issuer,
                 ["Jwt:Audience"] = TestJwt.Audience,
-                ["Jwt:SigningKey"] = TestJwt.SigningKey
+                ["Jwt:SigningKey"] = TestJwt.SigningKey,
+                ["ConnectionStrings:Default"] = $"Data Source={_appDbPath}"
             });
         });
 
@@ -57,6 +66,9 @@ public class SampleWebApplicationFactory : WebApplicationFactory<Program>
     {
         base.Dispose(disposing);
         if (disposing)
+        {
             _connection.Dispose();
+            File.Delete(_appDbPath);
+        }
     }
 }
