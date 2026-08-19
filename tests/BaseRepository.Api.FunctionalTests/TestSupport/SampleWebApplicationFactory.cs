@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using BaseRepository.Application;
 using BaseRepository.Application.Cqrs.Commands;
 using BaseRepository.Infrastructure;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BaseRepository.Api.FunctionalTests.TestSupport;
@@ -27,6 +29,16 @@ public class SampleWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Issuer"] = TestJwt.Issuer,
+                ["Jwt:Audience"] = TestJwt.Audience,
+                ["Jwt:SigningKey"] = TestJwt.SigningKey
+            });
+        });
+
         builder.ConfigureServices(services =>
         {
             services.AddControllers().AddApplicationPart(typeof(SamplesController).Assembly);

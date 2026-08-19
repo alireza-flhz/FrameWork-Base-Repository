@@ -43,6 +43,12 @@ Then check:
 - `GET /openapi/v1.json` → the generated OpenAPI document
 - `GET /scalar/v1` → interactive API docs (Scalar)
 
+All four work with zero configuration. Any entity you add via
+`BaseCrudController` requires a bearer token — set
+`dotnet user-secrets set Jwt:SigningKey "<at least 32 bytes>"` (and
+`Jwt:Issuer`/`Jwt:Audience` if you want non-default values) before those
+routes will accept requests.
+
 ## Test it
 
 ```
@@ -163,6 +169,41 @@ reject the update as "changing the key" — fixed by having
 `AddCrudHandlers<TEntity,TKey,TDto>()` configure Mapster to ignore `Id` for
 that DTO→entity pair.
 
+## Cross-cutting (Phase 4)
+
+- **Structured logging**: Serilog (Apache-2.0) replaces the default provider
+  — `UseSerilogRequestLogging()` gives one structured summary line per
+  request instead of the default per-middleware noise.
+- **JWT auth, secure by default**: `BaseCrudController` now carries
+  `[Authorize]` at the class level — every generic CRUD endpoint requires a
+  valid bearer token unless a concrete controller opts out with
+  `[AllowAnonymous]`. Configure `Jwt:Issuer`/`Jwt:Audience`/`Jwt:SigningKey`
+  (e.g. via `dotnet user-secrets` or environment variables — `SigningKey` is
+  intentionally blank in `appsettings.json`, never ship a working default
+  secret). Health/root/OpenAPI/Scalar stay open with no config at all;
+  protected endpoints fail clearly until you configure a key.
+- **API versioning**: `Asp.Versioning.*` (MIT) — `BaseCrudController` is
+  `[ApiVersion("1.0")]`; route your concrete controllers as
+  `api/v{version:apiVersion}/products`. OpenAPI gets one document per
+  version (`/openapi/v1.json`, `WithDocumentPerVersion()`).
+- **Output caching**: `AddOutputCache()`/`UseOutputCache()` are wired, but
+  deliberately **not** applied to `BaseCrudController` by default — caching
+  an `[Authorize]`-protected response without varying the cache key by user
+  is a real data-leak risk (one user's cached response served to another).
+  Apply `[OutputCache]` yourself on endpoints you've actually thought about
+  (typically `[AllowAnonymous]` reference-data reads).
+
+Proven in `BaseRepository.Api.FunctionalTests`: a valid bearer token reaches
+protected endpoints (200), no token or a garbage token doesn't (401), the
+versioned route works, and two rapid calls to a cached public endpoint
+return an identical value. Building this surfaced a real bug: the JWT
+signing key was read into a local variable *before* `WebApplicationFactory`
+merges the test's configuration override into `builder.Configuration`, so
+every token failed validation with "no security keys were provided" even
+though the key was configured — fixed by reading configuration lazily
+inside the `AddJwtBearer` options delegate instead of capturing it into a
+variable beforehand, which is also just better practice regardless of tests.
+
 ## Roadmap
 
 - [x] **Phase 0 — Foundations & solution skeleton.** Layered projects, central
@@ -174,12 +215,13 @@ that DTO→entity pair.
 - [x] **Phase 2 — Generic CQRS.** Custom mediator (see above), generic
       Create/Update/Delete/GetById/GetList handlers, FluentValidation,
       Mapster, pipeline behaviors — adding an entity needs a DTO + one
-      `AddCrudHandlers<...>()` call. *(this commit)*
+      `AddCrudHandlers<...>()` call.
 - [x] **Phase 3 — Generic API.** `BaseCrudController<T,TKey,TDto>`, global
       exception handling → `ProblemDetails`, OpenAPI + Scalar UI, paging from
-      the query string. *(this commit)*
-- [ ] **Phase 4 — Cross-cutting.** Structured logging, auth scaffolding
-      (JWT + policies), versioning, caching.
+      the query string.
+- [x] **Phase 4 — Cross-cutting.** Serilog structured logging, JWT auth
+      (secure by default) + policy-based authorization, API versioning,
+      output caching. *(this commit)*
 - [ ] **Phase 5 — Template-ization.** Package as a `dotnet new` template so a
       new project is one command, not a copy-paste.
 - [ ] **Phase 6 — CI/CD.** Full test suite wired into GitHub Actions, optional
