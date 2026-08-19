@@ -58,8 +58,14 @@ public class EfRepository<TEntity, TKey> : IRepository<TEntity, TKey> where TEnt
 
     public virtual void Update(TEntity entity)
     {
-        _dbSet.Attach(entity);
-        _context.Entry(entity).State = EntityState.Modified;
+        var entry = _context.Entry(entity);
+
+        // If the entity is already tracked (the common case: callers fetch via GetByIdAsync,
+        // mutate in place, then call Update), change tracking already saw the mutations and
+        // forcing State = Modified here would also mark the key property modified, which EF
+        // Core rejects. Only force it for genuinely detached entities.
+        if (entry.State == EntityState.Detached)
+            entry.State = EntityState.Modified;
     }
 
     public virtual void Remove(TEntity entity) => _dbSet.Remove(entity);

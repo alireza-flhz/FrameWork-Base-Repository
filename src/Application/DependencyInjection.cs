@@ -4,6 +4,7 @@ using BaseRepository.Application.Cqrs.Queries;
 using BaseRepository.Application.Messaging;
 using BaseRepository.Domain.Common;
 using BaseRepository.Domain.Entities;
+using Mapster;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BaseRepository.Application;
@@ -30,6 +31,11 @@ public static class DependencyInjection
     public static IServiceCollection AddCrudHandlers<TEntity, TKey, TDto>(this IServiceCollection services)
         where TEntity : BaseEntity<TKey>
     {
+        // Mapster maps onto non-public setters too, so an in-place Adapt(entity) during Update
+        // would otherwise overwrite the tracked entity's real Id with the DTO's (usually
+        // unset/default) Id and make EF Core reject the update as "changing the key".
+        TypeAdapterConfig<TDto, TEntity>.NewConfig().Ignore(dest => dest.Id!);
+
         services.AddScoped<IRequestHandler<CreateCommand<TEntity, TKey, TDto>, TDto>, CreateCommandHandler<TEntity, TKey, TDto>>();
         services.AddScoped<IRequestHandler<UpdateCommand<TEntity, TKey, TDto>, TDto>, UpdateCommandHandler<TEntity, TKey, TDto>>();
         services.AddScoped<IRequestHandler<DeleteCommand<TEntity, TKey>, Unit>, DeleteCommandHandler<TEntity, TKey>>();
