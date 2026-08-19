@@ -40,6 +40,8 @@ dotnet run --project src/Api
 Then check:
 - `GET /health` → 200 OK (ASP.NET Core health checks)
 - `GET /` → `{ "service": "BaseRepository.Api", "status": "running" }`
+- `GET /openapi/v1.json` → the generated OpenAPI document
+- `GET /scalar/v1` → interactive API docs (Scalar)
 
 ## Test it
 
@@ -124,6 +126,43 @@ in-memory `IRepository` fake (no database needed to test Application logic)
 — mediator dispatch and pipeline ordering, validation pass/fail, and all five
 generic handlers including the not-found and pagination-metadata paths.
 
+## API (Api)
+
+- **`BaseCrudController<TEntity, TKey, TDto>`** (`BaseRepository.Api.Controllers`)
+  — full REST CRUD (`GET` list w/ paging, `GET {id}`, `POST`, `PUT {id}`,
+  `DELETE {id}`) routed straight through the Phase 2 mediator. Derive a
+  concrete controller with its own route:
+  ```csharp
+  [Route("api/products")]
+  public class ProductsController : BaseCrudController<Product, int, ProductDto>
+  {
+      public ProductsController(ISender sender) : base(sender) { }
+  }
+  ```
+  If `TDto` implements `IHasId<TKey>` (`BaseRepository.Application.Cqrs`),
+  `Create` returns a proper `Location` header; otherwise it still returns 201,
+  just without one.
+- **`GlobalExceptionHandler`** (`IExceptionHandler`) — maps `NotFoundException`
+  → 404, `ConflictException` → 409, `BusinessRuleException` → 422,
+  `FluentValidation.ValidationException` → 400 (with a per-property `errors`
+  extension), anything else → 500. All as RFC 7807 `ProblemDetails`.
+- **OpenAPI**: the built-in `Microsoft.AspNetCore.OpenApi` (`/openapi/v1.json`)
+  + **Scalar** (`/scalar/v1`) for an interactive UI — both MIT, no Swashbuckle
+  needed.
+
+Proven end-to-end in `BaseRepository.Api.FunctionalTests`: a real sample
+entity/DTO/controller wired into the actual `Program.cs` pipeline via a
+custom `WebApplicationFactory` (real SQLite, real HTTP, real validation),
+covering the full create→read→list→update→delete lifecycle, a 400 on a
+failed validator, and a 404 with `application/problem+json` on a missing
+entity. This caught a real bug during development: Mapster's in-place
+`Adapt(source, destination)` writes through non-public setters too, so
+`UpdateCommandHandler`'s `Adapt(entity)` was silently overwriting the
+tracked entity's real `Id` with the DTO's default `0`, which made EF Core
+reject the update as "changing the key" — fixed by having
+`AddCrudHandlers<TEntity,TKey,TDto>()` configure Mapster to ignore `Id` for
+that DTO→entity pair.
+
 ## Roadmap
 
 - [x] **Phase 0 — Foundations & solution skeleton.** Layered projects, central
@@ -136,9 +175,9 @@ generic handlers including the not-found and pagination-metadata paths.
       Create/Update/Delete/GetById/GetList handlers, FluentValidation,
       Mapster, pipeline behaviors — adding an entity needs a DTO + one
       `AddCrudHandlers<...>()` call. *(this commit)*
-- [ ] **Phase 3 — Generic API.** `BaseController<T,...>`, global exception
-      handling → `ProblemDetails`, OpenAPI/Swagger, pagination/filtering from
-      the query string.
+- [x] **Phase 3 — Generic API.** `BaseCrudController<T,TKey,TDto>`, global
+      exception handling → `ProblemDetails`, OpenAPI + Scalar UI, paging from
+      the query string. *(this commit)*
 - [ ] **Phase 4 — Cross-cutting.** Structured logging, auth scaffolding
       (JWT + policies), versioning, caching.
 - [ ] **Phase 5 — Template-ization.** Package as a `dotnet new` template so a
