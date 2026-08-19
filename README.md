@@ -91,6 +91,39 @@ integration tests for Infrastructure, functional tests for the API via
 All of this is proven end-to-end against a real SQLite database in
 `BaseRepository.Infrastructure.IntegrationTests` — see `EfRepositoryTests`.
 
+## CQRS (Application)
+
+- **No MediatR.** MediatR (and AutoMapper) moved to a commercial/RPL-1.5
+  license starting v13 — a copyleft-ish license that could force a
+  closed-source project built on this template to either open its source or
+  buy a license. `BaseRepository.Application.Messaging` is a small
+  (~100 line) MIT-equivalent, zero-dependency in-process mediator with the
+  same shape (`IRequest<T>`, `IRequestHandler<T,TResponse>`, `ISender`,
+  `IPipelineBehavior<T,TResponse>`), so there's no license risk baked into
+  the base template. Mapping uses **Mapster** (MIT) instead of AutoMapper for
+  the same reason.
+- **`LoggingBehavior<,>`** / **`ValidationBehavior<,>`** — registered
+  automatically by `AddApplication()`. Validation is via **FluentValidation**
+  (Apache-2.0, unaffected by the MediatR/AutoMapper license change) — a
+  request with no registered validator just skips validation.
+- **Generic CRUD**: `CreateCommand<TEntity,TKey,TDto>`,
+  `UpdateCommand<TEntity,TKey,TDto>`, `DeleteCommand<TEntity,TKey>`,
+  `GetByIdQuery<TEntity,TKey,TDto>`, `GetListQuery<TEntity,TKey,TDto>` (paged)
+  and their handlers, under `BaseRepository.Application.Cqrs`. Failures throw
+  the Domain exceptions from Phase 0/1 (`NotFoundException`, ...); success
+  returns the DTO/`PagedResult<TDto>` directly — no redundant wrapper, since
+  the failure path never returns a value to wrap.
+- Register CRUD for one entity with a single call:
+  `services.AddCrudHandlers<Product, int, ProductDto>();`. Add a
+  `FluentValidation` validator for `CreateCommand<Product,int,ProductDto>`
+  (or `UpdateCommand<...>`) if that entity needs write validation — otherwise
+  skip it, validation stays optional per entity.
+
+Proven in `BaseRepository.Application.UnitTests` against a hand-rolled
+in-memory `IRepository` fake (no database needed to test Application logic)
+— mediator dispatch and pipeline ordering, validation pass/fail, and all five
+generic handlers including the not-found and pagination-metadata paths.
+
 ## Roadmap
 
 - [x] **Phase 0 — Foundations & solution skeleton.** Layered projects, central
@@ -99,10 +132,10 @@ All of this is proven end-to-end against a real SQLite database in
 - [x] **Phase 1 — Domain & persistence core.** `BaseEntity<TKey>`,
       auditing/soft-delete interfaces, Specification pattern, generic
       `IRepository<T,TKey>` + EF Core implementation + `UnitOfWork`.
-      *(this commit)*
-- [ ] **Phase 2 — Generic CQRS.** MediatR-based generic
+- [x] **Phase 2 — Generic CQRS.** Custom mediator (see above), generic
       Create/Update/Delete/GetById/GetList handlers, FluentValidation,
-      mapping, pipeline behaviors — adding an entity should only require a DTO.
+      Mapster, pipeline behaviors — adding an entity needs a DTO + one
+      `AddCrudHandlers<...>()` call. *(this commit)*
 - [ ] **Phase 3 — Generic API.** `BaseController<T,...>`, global exception
       handling → `ProblemDetails`, OpenAPI/Swagger, pagination/filtering from
       the query string.
