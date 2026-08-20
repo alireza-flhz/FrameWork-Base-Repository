@@ -1,10 +1,9 @@
 name: Publish Template
 
-# Manual or tag-triggered only - this never runs on a regular push/PR. Requires a
-# NUGET_API_KEY repository secret (Settings -> Secrets and variables -> Actions) before it can
-# actually publish; without one, the push step fails with a clear auth error rather than
-# publishing anything. Bump <PackageVersion> in template-pack/BaseRepository.Template.csproj
-# before tagging a release.
+# Manual or tag-triggered only - this never runs on a regular push/PR. Publishes via NuGet.org
+# Trusted Publishing (OIDC, no stored secret) - requires a Trusted Publishing policy on
+# nuget.org scoped to this repo + this workflow file (see nuget.org/account/trusted-publishing).
+# Bump <PackageVersion> in template-pack/BaseRepository.Template.csproj before tagging a release.
 on:
   push:
     tags:
@@ -14,6 +13,9 @@ on:
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+permissions:
+  id-token: write
 
 jobs:
   publish:
@@ -30,9 +32,15 @@ jobs:
       - name: Pack the template
         run: dotnet pack template-pack/BaseRepository.Template.csproj --configuration Release --output ./nupkg
 
+      - name: NuGet login (OIDC -> temporary API key)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: alireza-flhz
+
       - name: Push to NuGet.org
         run: >
           dotnet nuget push "./nupkg/*.nupkg"
-          --api-key "${{ secrets.NUGET_API_KEY }}"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate
