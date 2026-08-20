@@ -6,12 +6,12 @@
     <PackageId>BaseRepository.Template</PackageId>
     <Title>Clean Architecture API Template</Title>
     <Authors>alireza-flhz</Authors>
-    <Description>dotnet new template for a fully generic Clean Architecture .NET API: layered projects, a custom zero-dependency CQRS mediator, EF Core persistence, JWT auth, API versioning, output caching, and a working TodoItem sample wired end to end.</Description>
+    <Description>dotnet new template for a fully generic Clean Architecture .NET API: layered projects, a custom zero-dependency CQRS mediator, EF Core persistence, built-in register/login with self-service profile (JWT auth, international phone validation via libphonenumber), API versioning, output caching, and a working TodoItem sample wired end to end.</Description>
     <PackageVersion>1.0.0</PackageVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/alireza-flhz/CleanArchitecture-Api-Template</PackageProjectUrl>
     <RepositoryUrl>https://github.com/alireza-flhz/CleanArchitecture-Api-Template</RepositoryUrl>
-    <PackageTags>dotnet-new;templates;clean-architecture;cqrs;webapi;api</PackageTags>
+    <PackageTags>dotnet-new;templates;clean-architecture;cqrs;webapi;api;auth;jwt</PackageTags>
     <IncludeContentInPack>true</IncludeContentInPack>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <ContentTargetFolders>content</ContentTargetFolders>
