@@ -1,6 +1,6 @@
 # BaseRepository
 
-[![CI](https://github.com/alireza-flhz/FrameWork-Base-Repository/actions/workflows/ci.yml/badge.svg)](https://github.com/alireza-flhz/FrameWork-Base-Repository/actions/workflows/ci.yml)
+[![CI](https://github.com/alireza-flhz/CleanArchitecture-Api-Template/actions/workflows/ci.yml/badge.svg)](https://github.com/alireza-flhz/CleanArchitecture-Api-Template/actions/workflows/ci.yml)
 
 A fully generic Clean Architecture starter for .NET — the "basics every project
 needs" (layering, a Result type, pagination, health checks, a test project per
