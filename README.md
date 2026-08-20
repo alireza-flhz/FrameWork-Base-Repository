@@ -1,5 +1,7 @@
 # BaseRepository
 
+[![CI](https://github.com/alireza-flhz/FrameWork-Base-Repository/actions/workflows/ci.yml/badge.svg)](https://github.com/alireza-flhz/FrameWork-Base-Repository/actions/workflows/ci.yml)
+
 A fully generic Clean Architecture starter for .NET — the "basics every project
 needs" (layering, a Result type, pagination, health checks, a test project per
 layer) wired up once, so a new project starts from a working skeleton instead
@@ -274,6 +276,24 @@ causing intermittent SQLite collisions when the full suite ran together
 factories override `ConnectionStrings:Default` to a unique temp-file path
 per factory instance.
 
+## CI/CD (Phase 6)
+
+- **`.github/workflows/ci.yml`** — on every push/PR to `master` (and
+  manually via `workflow_dispatch`): restore, `dotnet build --configuration
+  Release`, then `dotnet test` across all four test projects, with TRX
+  results uploaded as a build artifact. A second job (`template-smoke-test`)
+  regression-guards the `dotnet new` mechanism itself: install this repo as
+  a template, scaffold a throwaway project from it, and build + test *that*
+  — so a change that breaks templating (not just the base solution) fails
+  CI too.
+- **`.github/workflows/publish-template.yml`** — packs and pushes
+  `template-pack/BaseRepository.Template.csproj` to NuGet.org. Triggered
+  only by a `v*.*.*` tag or manual dispatch, never a regular push. It
+  needs a `NUGET_API_KEY` repository secret to actually publish anything;
+  without one it fails cleanly at the push step. Nobody has configured that
+  secret or published this template anywhere yet — that's a deliberate
+  call left to whoever owns this repo and wants to make it public.
+
 ## Roadmap
 
 - [x] **Phase 0 — Foundations & solution skeleton.** Layered projects, central
@@ -294,9 +314,10 @@ per factory instance.
       output caching.
 - [x] **Phase 5 — Template-ization.** `dotnet new` template (`sourceName`
       rename of everything), a real wired `TodoItem` sample, auto-discovered
-      validators. *(this commit)*
-- [ ] **Phase 6 — CI/CD.** Full test suite wired into GitHub Actions, optional
-      NuGet/template publish.
+      validators.
+- [x] **Phase 6 — CI/CD.** Full test suite (+ a template scaffolding smoke
+      test) wired into GitHub Actions; a dormant, secret-gated NuGet publish
+      workflow. *(this commit)*
 
 Generic CRUD (Phases 1-3) covers most simple/master-data entities. Anything
 with real business rules is expected to get a bespoke Application handler or
