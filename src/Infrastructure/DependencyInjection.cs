@@ -2,6 +2,7 @@ using System;
 using BaseRepository.Application.Abstractions;
 using BaseRepository.Infrastructure.Persistence;
 using BaseRepository.Infrastructure.Persistence.Interceptors;
+using BaseRepository.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,11 +12,15 @@ namespace BaseRepository.Infrastructure;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Cross-cutting infrastructure services that don't need a DbContext (email, file
-    /// storage, external clients, ...) land here in later phases.
+    /// Cross-cutting infrastructure services that don't need a DbContext. Password hashing and
+    /// JWT issuing for Auth (Application.Auth) live here; email, file storage, and other
+    /// external clients land here too as they're added.
     /// </summary>
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+
         return services;
     }
 

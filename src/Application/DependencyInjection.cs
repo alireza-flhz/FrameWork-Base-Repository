@@ -1,3 +1,4 @@
+using BaseRepository.Application.Auth;
 using BaseRepository.Application.Behaviors;
 using BaseRepository.Application.Cqrs.Commands;
 using BaseRepository.Application.Cqrs.Queries;
@@ -21,6 +22,12 @@ public static class DependencyInjection
         // Auto-discovers every AbstractValidator<T> in this assembly - drop a validator next
         // to the DTO/command it validates and it's picked up with no extra registration.
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+
+        // Auth is part of the base (every project needs register/login), not opt-in per
+        // entity like AddCrudHandlers<>() - it's registered here so AddApplication() alone
+        // is enough, as long as AddPersistence<>()/AddInfrastructure() are also wired up.
+        services.AddScoped<IRequestHandler<RegisterCommand, AuthResultDto>, RegisterCommandHandler>();
+        services.AddScoped<IRequestHandler<LoginCommand, AuthResultDto>, LoginCommandHandler>();
 
         return services;
     }
