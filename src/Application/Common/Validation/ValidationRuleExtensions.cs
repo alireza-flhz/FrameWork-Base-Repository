@@ -4,16 +4,16 @@ namespace BaseRepository.Application.Common.Validation;
 
 /// <summary>
 /// Ready-made FluentValidation rules for common Iranian formats, wrapping the pure checks in
-/// BaseRepository.Domain.Common. Usage: <c>RuleFor(x => x.Phone).IranianMobileNumber();</c>
+/// BaseRepository.Domain.Common. Usage: <c>RuleFor(x => x.Phone).PersianMobileNumber();</c>
 /// Fully-qualified below on purpose - each rule method shares its name with the Domain type it
 /// wraps, which would otherwise shadow that type inside this class.
 /// </summary>
 public static class ValidationRuleExtensions
 {
-    public static IRuleBuilderOptions<T, string> IranianMobileNumber<T>(this IRuleBuilder<T, string> ruleBuilder)
+    public static IRuleBuilderOptions<T, string> PersianMobileNumber<T>(this IRuleBuilder<T, string> ruleBuilder)
         => ruleBuilder
-            .Must(BaseRepository.Domain.Common.IranianMobileNumber.IsValid)
-            .WithMessage("'{PropertyName}' must be a valid Iranian mobile number.");
+            .Must(BaseRepository.Domain.Common.PersianMobileNumber.IsValid)
+            .WithMessage("'{PropertyName}' must be a valid Persian mobile number.");
 
     public static IRuleBuilderOptions<T, string> IranianNationalCode<T>(this IRuleBuilder<T, string> ruleBuilder)
         => ruleBuilder

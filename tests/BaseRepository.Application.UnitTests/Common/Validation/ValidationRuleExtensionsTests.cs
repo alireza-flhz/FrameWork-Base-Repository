@@ -13,7 +13,7 @@ public class ValidationRuleExtensionsTests
 
     private class PhoneValidator : AbstractValidator<PhoneModel>
     {
-        public PhoneValidator() => RuleFor(x => x.Phone).IranianMobileNumber();
+        public PhoneValidator() => RuleFor(x => x.Phone).PersianMobileNumber();
     }
 
     private class NationalCodeModel
@@ -27,7 +27,7 @@ public class ValidationRuleExtensionsTests
     }
 
     [Fact]
-    public void IranianMobileNumberRule_WithAValidNumber_Passes()
+    public void PersianMobileNumberRule_WithAValidNumber_Passes()
     {
         var result = new PhoneValidator().Validate(new PhoneModel { Phone = "09123456789" });
 
@@ -35,7 +35,7 @@ public class ValidationRuleExtensionsTests
     }
 
     [Fact]
-    public void IranianMobileNumberRule_WithAnInvalidNumber_Fails()
+    public void PersianMobileNumberRule_WithAnInvalidNumber_Fails()
     {
         var result = new PhoneValidator().Validate(new PhoneModel { Phone = "not-a-number" });
 

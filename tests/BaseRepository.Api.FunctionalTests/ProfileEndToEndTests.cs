@@ -11,8 +11,9 @@ using Xunit;
 namespace BaseRepository.Api.FunctionalTests;
 
 /// <summary>
-/// Proves a signed-in user can set/change their own phone number through the real,
-/// unmodified Program.cs, and that nobody else's profile can be touched this way.
+/// Proves a signed-in user can set/change their own phone number - any country, not just Iran
+/// - through the real, unmodified Program.cs, and that nobody else's profile can be touched
+/// this way.
 /// </summary>
 public class ProfileEndToEndTests : IClassFixture<RealAppWebApplicationFactory>
 {
@@ -39,13 +40,13 @@ public class ProfileEndToEndTests : IClassFixture<RealAppWebApplicationFactory>
     [Fact]
     public async Task UpdatePhoneNumber_WithoutAToken_Returns401()
     {
-        var response = await _client.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = "09123456789" });
+        var response = await _client.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = "+989123456789" });
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
-    public async Task UpdatePhoneNumber_WithAValidNumber_Returns200AndPersistsIt()
+    public async Task UpdatePhoneNumber_WithAnInternationalFormNumber_Returns200AndPersistsAsE164()
     {
         var token = await RegisterAndGetTokenAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -54,7 +55,33 @@ public class ProfileEndToEndTests : IClassFixture<RealAppWebApplicationFactory>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<UserProfileDto>();
-        Assert.Equal("09123456789", result!.PhoneNumber);
+        Assert.Equal("+989123456789", result!.PhoneNumber);
+    }
+
+    [Fact]
+    public async Task UpdatePhoneNumber_WithALocalFormatNumberAndARegion_NormalizesToE164()
+    {
+        // Not Iran-only: a US local-format number + its region code works the same way.
+        var token = await RegisterAndGetTokenAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = "6502530000", Region = "US" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<UserProfileDto>();
+        Assert.Equal("+16502530000", result!.PhoneNumber);
+    }
+
+    [Fact]
+    public async Task UpdatePhoneNumber_LocalFormatWithNoRegion_Returns400()
+    {
+        // Ambiguous without a region hint - rejected rather than guessed at.
+        var token = await RegisterAndGetTokenAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = "09123456789" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
@@ -74,12 +101,12 @@ public class ProfileEndToEndTests : IClassFixture<RealAppWebApplicationFactory>
         var firstUserToken = await RegisterAndGetTokenAsync();
         var firstClient = _factory.CreateClient();
         firstClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", firstUserToken);
-        await firstClient.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = "09121234567" });
+        await firstClient.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = "+989121234567" });
 
         var secondUserToken = await RegisterAndGetTokenAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", secondUserToken);
 
-        var response = await _client.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = "09121234567" });
+        var response = await _client.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = "+989121234567" });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
@@ -89,7 +116,7 @@ public class ProfileEndToEndTests : IClassFixture<RealAppWebApplicationFactory>
     {
         var token = await RegisterAndGetTokenAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        await _client.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = "09123456789" });
+        await _client.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = "+989123456789" });
 
         var response = await _client.PutAsJsonAsync("/api/v1/auth/me/phone", new { PhoneNumber = (string?)null });
 

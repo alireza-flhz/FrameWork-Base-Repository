@@ -2,7 +2,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using BaseRepository.Application.Abstractions;
 using BaseRepository.Application.Messaging;
-using BaseRepository.Domain.Common;
 using BaseRepository.Domain.Entities;
 using BaseRepository.Domain.Exceptions;
 
@@ -13,12 +12,18 @@ public class UpdatePhoneNumberCommandHandler : IRequestHandler<UpdatePhoneNumber
     private readonly IRepository<User, int> _repository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _currentUser;
+    private readonly IPhoneNumberValidator _phoneNumberValidator;
 
-    public UpdatePhoneNumberCommandHandler(IRepository<User, int> repository, IUnitOfWork unitOfWork, ICurrentUser currentUser)
+    public UpdatePhoneNumberCommandHandler(
+        IRepository<User, int> repository,
+        IUnitOfWork unitOfWork,
+        ICurrentUser currentUser,
+        IPhoneNumberValidator phoneNumberValidator)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
+        _phoneNumberValidator = phoneNumberValidator;
     }
 
     public async Task<UserProfileDto> Handle(UpdatePhoneNumberCommand request, CancellationToken cancellationToken)
@@ -34,7 +39,7 @@ public class UpdatePhoneNumberCommandHandler : IRequestHandler<UpdatePhoneNumber
         }
         else
         {
-            var normalized = IranianMobileNumber.Normalize(request.PhoneNumber);
+            var normalized = _phoneNumberValidator.ToE164(request.PhoneNumber, request.Region);
 
             if (await _repository.AnyAsync(new UserByPhoneNumberSpecification(normalized, excludingUserId: userId), cancellationToken))
                 throw new ConflictException($"Phone number \"{normalized}\" is already in use.");

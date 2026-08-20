@@ -1,14 +1,15 @@
-using BaseRepository.Application.Common.Validation;
+using BaseRepository.Application.Abstractions;
 using FluentValidation;
 
 namespace BaseRepository.Application.Auth;
 
 public class UpdatePhoneNumberCommandValidator : AbstractValidator<UpdatePhoneNumberCommand>
 {
-    public UpdatePhoneNumberCommandValidator()
+    public UpdatePhoneNumberCommandValidator(IPhoneNumberValidator phoneNumberValidator)
     {
-        RuleFor(x => x.PhoneNumber!)
-            .IranianMobileNumber()
+        RuleFor(x => x)
+            .Must(x => phoneNumberValidator.IsValid(x.PhoneNumber!, x.Region))
+            .WithMessage("'PhoneNumber' is not a valid phone number for the given region.")
             .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber));
     }
 }

@@ -13,8 +13,9 @@ public class UpdatePhoneNumberCommandHandlerTests
     private readonly InMemoryRepository<User, int> _repository = new();
     private readonly InMemoryUnitOfWork _unitOfWork = new();
     private readonly FakeCurrentUser _currentUser = new();
+    private readonly FakePhoneNumberValidator _phoneNumberValidator = new();
 
-    private UpdatePhoneNumberCommandHandler CreateHandler() => new(_repository, _unitOfWork, _currentUser);
+    private UpdatePhoneNumberCommandHandler CreateHandler() => new(_repository, _unitOfWork, _currentUser, _phoneNumberValidator);
 
     private async Task<User> SeedUserAsync(int id, string email)
     {
@@ -31,7 +32,7 @@ public class UpdatePhoneNumberCommandHandlerTests
         var handler = CreateHandler();
 
         await Assert.ThrowsAsync<AuthenticationFailedException>(() =>
-            handler.Handle(new UpdatePhoneNumberCommand { PhoneNumber = "09123456789" }, CancellationToken.None));
+            handler.Handle(new UpdatePhoneNumberCommand { PhoneNumber = "+989123456789" }, CancellationToken.None));
     }
 
     [Fact]
@@ -43,16 +44,16 @@ public class UpdatePhoneNumberCommandHandlerTests
 
         var result = await handler.Handle(new UpdatePhoneNumberCommand { PhoneNumber = "+989123456789" }, CancellationToken.None);
 
-        Assert.Equal("09123456789", result.PhoneNumber);
+        Assert.Equal("+989123456789", result.PhoneNumber);
         var stored = await _repository.GetByIdAsync(1, CancellationToken.None);
-        Assert.Equal("09123456789", stored!.PhoneNumber);
+        Assert.Equal("+989123456789", stored!.PhoneNumber);
     }
 
     [Fact]
     public async Task Handle_WithAnEmptyPhoneNumber_ClearsIt()
     {
         var user = await SeedUserAsync(1, "user@example.com");
-        user.PhoneNumber = "09123456789";
+        user.PhoneNumber = "+989123456789";
         _currentUser.UserId = 1;
         var handler = CreateHandler();
 
@@ -65,25 +66,25 @@ public class UpdatePhoneNumberCommandHandlerTests
     public async Task Handle_WithAPhoneNumberAlreadyUsedByAnotherUser_ThrowsConflictException()
     {
         var other = await SeedUserAsync(1, "other@example.com");
-        other.PhoneNumber = "09123456789";
+        other.PhoneNumber = "+989123456789";
         await SeedUserAsync(2, "user@example.com");
         _currentUser.UserId = 2;
         var handler = CreateHandler();
 
         await Assert.ThrowsAsync<ConflictException>(() =>
-            handler.Handle(new UpdatePhoneNumberCommand { PhoneNumber = "09123456789" }, CancellationToken.None));
+            handler.Handle(new UpdatePhoneNumberCommand { PhoneNumber = "+989123456789" }, CancellationToken.None));
     }
 
     [Fact]
     public async Task Handle_ReSettingTheCallersOwnCurrentPhoneNumber_DoesNotConflictWithItself()
     {
         var user = await SeedUserAsync(1, "user@example.com");
-        user.PhoneNumber = "09123456789";
+        user.PhoneNumber = "+989123456789";
         _currentUser.UserId = 1;
         var handler = CreateHandler();
 
-        var result = await handler.Handle(new UpdatePhoneNumberCommand { PhoneNumber = "09123456789" }, CancellationToken.None);
+        var result = await handler.Handle(new UpdatePhoneNumberCommand { PhoneNumber = "+989123456789" }, CancellationToken.None);
 
-        Assert.Equal("09123456789", result.PhoneNumber);
+        Assert.Equal("+989123456789", result.PhoneNumber);
     }
 }

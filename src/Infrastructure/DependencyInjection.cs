@@ -2,6 +2,7 @@ using System;
 using BaseRepository.Application.Abstractions;
 using BaseRepository.Infrastructure.Persistence;
 using BaseRepository.Infrastructure.Persistence.Interceptors;
+using BaseRepository.Infrastructure.Phone;
 using BaseRepository.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -20,6 +21,10 @@ public static class DependencyInjection
     {
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+
+        // Singleton: PhoneNumberUtil.GetInstance() already loads/caches all metadata once and
+        // is documented as thread-safe, so there's no reason to rebuild it per request.
+        services.AddSingleton<IPhoneNumberValidator, PhoneNumberValidator>();
 
         return services;
     }

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace BaseRepository.Domain.UnitTests.Common;
 
-public class IranianMobileNumberTests
+public class PersianMobileNumberTests
 {
     [Theory]
     [InlineData("09123456789")]
@@ -14,7 +14,7 @@ public class IranianMobileNumberTests
     [InlineData("9123456789")]
     public void IsValid_WithAKnownAcceptedForm_ReturnsTrue(string number)
     {
-        Assert.True(IranianMobileNumber.IsValid(number));
+        Assert.True(PersianMobileNumber.IsValid(number));
     }
 
     [Theory]
@@ -25,7 +25,7 @@ public class IranianMobileNumberTests
     [InlineData(null)]
     public void IsValid_WithGarbageInput_ReturnsFalse(string? number)
     {
-        Assert.False(IranianMobileNumber.IsValid(number));
+        Assert.False(PersianMobileNumber.IsValid(number));
     }
 
     [Theory]
@@ -36,12 +36,12 @@ public class IranianMobileNumberTests
     [InlineData("9123456789", "09123456789")]
     public void Normalize_AlwaysProducesTheLocalElevenDigitForm(string input, string expected)
     {
-        Assert.Equal(expected, IranianMobileNumber.Normalize(input));
+        Assert.Equal(expected, PersianMobileNumber.Normalize(input));
     }
 
     [Fact]
     public void Normalize_WithAnInvalidNumber_Throws()
     {
-        Assert.Throws<ArgumentException>(() => IranianMobileNumber.Normalize("not-a-number"));
+        Assert.Throws<ArgumentException>(() => PersianMobileNumber.Normalize("not-a-number"));
     }
 }
