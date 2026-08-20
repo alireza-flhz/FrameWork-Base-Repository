@@ -4,6 +4,7 @@ using BaseRepository.Application.Cqrs.Queries;
 using BaseRepository.Application.Messaging;
 using BaseRepository.Domain.Common;
 using BaseRepository.Domain.Entities;
+using FluentValidation;
 using Mapster;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,6 +18,10 @@ public static class DependencyInjection
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
+        // Auto-discovers every AbstractValidator<T> in this assembly - drop a validator next
+        // to the DTO/command it validates and it's picked up with no extra registration.
+        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+
         return services;
     }
 
@@ -25,8 +30,8 @@ public static class DependencyInjection
     /// Call this once per entity you want CRUD for, e.g.
     /// <c>services.AddCrudHandlers&lt;Product, int, ProductDto&gt;();</c>
     /// Add an <c>AbstractValidator&lt;CreateCommand&lt;Product,int,ProductDto&gt;&gt;</c> (and/or
-    /// for Update) and register it separately if that entity's writes need validation - the
-    /// validation pipeline behavior picks it up automatically, and does nothing if none exists.
+    /// for Update) if that entity's writes need validation - AddApplication() picks it up
+    /// automatically via assembly scanning, and does nothing if none exists.
     /// </summary>
     public static IServiceCollection AddCrudHandlers<TEntity, TKey, TDto>(this IServiceCollection services)
         where TEntity : BaseEntity<TKey>

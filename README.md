@@ -11,6 +11,24 @@ of from scratch.
 - Being built in phases; each phase lands as a working, tested increment.
   See [Roadmap](#roadmap) below for where things stand.
 
+## Start a new project from this
+
+This repo doubles as a `dotnet new` template — scaffolding a project renames
+everything (namespaces, project files, the solution) to your chosen name in
+one command, instead of cloning and find-and-replacing "BaseRepository"
+yourself:
+
+```
+dotnet new install <path-to-this-repo-or-its-.nupkg>
+dotnet new basecrud -n Acme.Store
+cd Acme.Store
+dotnet run --project src/Api
+```
+
+That's a real, complete, differently-named solution — see
+[Template-ization](#template-ization-phase-5) below for what that command
+actually does and how it was verified.
+
 ## Solution layout
 
 ```
@@ -43,11 +61,22 @@ Then check:
 - `GET /openapi/v1.json` → the generated OpenAPI document
 - `GET /scalar/v1` → interactive API docs (Scalar)
 
-All four work with zero configuration. Any entity you add via
-`BaseCrudController` requires a bearer token — set
-`dotnet user-secrets set Jwt:SigningKey "<at least 32 bytes>"` (and
-`Jwt:Issuer`/`Jwt:Audience` if you want non-default values) before those
-routes will accept requests.
+All four work with zero configuration. `TodoItem` (see
+[Template-ization](#template-ization-phase-5)) is real and SQLite-backed
+(`app.db`, created automatically), but — like everything routed through
+`BaseCrudController` — requires a bearer token. Set a signing key first:
+
+```
+dotnet user-secrets init --project src/Api
+dotnet user-secrets set Jwt:SigningKey "<at least 32 bytes>" --project src/Api
+dotnet run --project src/Api
+curl -X POST http://localhost:5000/api/v1/todo-items \
+  -H "Authorization: Bearer <a token signed with that key, issuer/audience Jwt:Issuer/Jwt:Audience>" \
+  -H "Content-Type: application/json" -d "{\"title\":\"buy milk\"}"
+```
+
+(`Jwt:Issuer`/`Jwt:Audience` default to `BaseRepository.Api`, or whatever
+your scaffolded project renamed them to.)
 
 ## Test it
 
@@ -204,6 +233,47 @@ though the key was configured — fixed by reading configuration lazily
 inside the `AddJwtBearer` options delegate instead of capturing it into a
 variable beforehand, which is also just better practice regardless of tests.
 
+## Template-ization (Phase 5)
+
+- **A real sample, not a fake one.** `TodoItem` (Domain) / `TodoItemDto` +
+  `CreateTodoItemValidator` (Application) / `AppDbContext` (Infrastructure) /
+  `TodoItemsController` (Api) are wired into the actual, unmodified
+  `Program.cs` — SQLite-backed (`app.db`, schema created automatically via
+  `EnsureCreated()`, no migrations tooling required to just run it). It's the
+  one thing in this repo that isn't meant to stay: once you've added your own
+  entities the same way, delete `TodoItem` and its DTO/validator/controller/
+  DbSet. Every type carries a doc comment saying so.
+- **`AddApplication()` now auto-discovers validators** via
+  `FluentValidation.DependencyInjectionExtensions` (Apache-2.0) —
+  `AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly)`. Drop an
+  `AbstractValidator<...>` next to the DTO it validates; no registration line
+  needed any more (this replaced the Phase 2 approach of registering each
+  validator by hand).
+- **`dotnet new` template**: `.template.config/template.json` at the repo
+  root, `sourceName: "BaseRepository"` — scaffolding replaces that string
+  everywhere (namespaces, `.csproj`/`.sln` file names, even string literals
+  like the `/` endpoint's `service` field) with whatever name you pass to
+  `-n`. `template-pack/BaseRepository.Template.csproj` packs it as an
+  installable `.nupkg` for distribution (not published anywhere yet — that's
+  a deliberate choice for someone with publish rights to make, not this
+  commit's job).
+
+Verified for real, three different ways: (1) `dotnet new install` on this
+repo folder directly, scaffold `Acme.Store`, `dotnet build` + `dotnet test`
+→ 49/49 passing, `dotnet run` → full TodoItem CRUD lifecycle over real HTTP;
+(2) same again with an unrelated name (`Contoso.Widgets`) to rule out a
+lucky one-off; (3) `dotnet pack` the template project, install *from the
+resulting `.nupkg`* (the actual distribution path, not just a folder
+install), scaffold `Northwind.Api`, build clean. Building this surfaced a
+real bug: once `Program.cs` itself wired up `AppDbContext`, *every*
+`WebApplicationFactory`-based test — even ones with nothing to do with
+`TodoItem` — started spinning it up too, and every parallel test class got
+its own factory instance pointed at the same relative `app.db` file,
+causing intermittent SQLite collisions when the full suite ran together
+(invisible running any one test project alone). Fixed by having the test
+factories override `ConnectionStrings:Default` to a unique temp-file path
+per factory instance.
+
 ## Roadmap
 
 - [x] **Phase 0 — Foundations & solution skeleton.** Layered projects, central
@@ -221,9 +291,10 @@ variable beforehand, which is also just better practice regardless of tests.
       the query string.
 - [x] **Phase 4 — Cross-cutting.** Serilog structured logging, JWT auth
       (secure by default) + policy-based authorization, API versioning,
-      output caching. *(this commit)*
-- [ ] **Phase 5 — Template-ization.** Package as a `dotnet new` template so a
-      new project is one command, not a copy-paste.
+      output caching.
+- [x] **Phase 5 — Template-ization.** `dotnet new` template (`sourceName`
+      rename of everything), a real wired `TodoItem` sample, auto-discovered
+      validators. *(this commit)*
 - [ ] **Phase 6 — CI/CD.** Full test suite wired into GitHub Actions, optional
       NuGet/template publish.
 

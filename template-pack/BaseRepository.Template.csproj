@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageType>Template</PackageType>
+    <PackageId>BaseRepository.Template</PackageId>
+    <Title>Clean Architecture API Template</Title>
+    <Authors>alireza-flhz</Authors>
+    <Description>dotnet new template for a fully generic Clean Architecture .NET API: layered projects, a custom zero-dependency CQRS mediator, EF Core persistence, JWT auth, API versioning, output caching, and a working TodoItem sample wired end to end.</Description>
+    <PackageVersion>1.0.0</PackageVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/alireza-flhz/FrameWork-Base-Repository</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/alireza-flhz/FrameWork-Base-Repository</RepositoryUrl>
+    <PackageTags>dotnet-new;templates;clean-architecture;cqrs;webapi;api</PackageTags>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="../**/*" Exclude="../**/bin/**;../**/obj/**;../**/*.db;../**/*.db-shm;../**/*.db-wal;../.git/**;../template-pack/**;../*.nupkg">
+      <Pack>true</Pack>
+      <PackagePath>content</PackagePath>
+    </Content>
+  </ItemGroup>
+
+</Project>

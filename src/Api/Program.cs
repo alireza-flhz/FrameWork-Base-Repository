@@ -2,10 +2,15 @@ using System.Text;
 using Asp.Versioning;
 using BaseRepository.Api.ExceptionHandling;
 using BaseRepository.Application;
+using BaseRepository.Application.TodoItems;
+using BaseRepository.Domain.Entities;
 using BaseRepository.Infrastructure;
+using BaseRepository.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
@@ -21,6 +26,12 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks();
+
+// The template's example entity - see TodoItem's doc comment for what to delete once you
+// don't need it any more. Read lazily for the same reason the JWT signing key is (see below).
+builder.Services.AddPersistence<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=app.db"));
+builder.Services.AddCrudHandlers<TodoItem, int, TodoItemDto>();
 
 builder.Services.AddControllers();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -72,6 +83,13 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+// No migrations tooling required to just run the template: create the schema if it isn't
+// there yet. Switch to EF Core migrations (dotnet ef migrations add ...) once you outgrow this.
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
+}
 
 app.UseSerilogRequestLogging();
 

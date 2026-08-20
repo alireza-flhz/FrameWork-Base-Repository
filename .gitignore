@@ -361,3 +361,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local SQLite databases created by running the app/tests (see AppDbContext in src/Api)
+*.db
+*.db-shm
+*.db-wal

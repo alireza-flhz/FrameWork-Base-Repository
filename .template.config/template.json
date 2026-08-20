@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "alireza-flhz",
+  "classifications": ["Web", "API", "Clean Architecture"],
+  "identity": "BaseRepository.CleanArchitecture.Api",
+  "name": "Clean Architecture API (generic CQRS, EF Core, JWT auth)",
+  "shortName": "basecrud",
+  "sourceName": "BaseRepository",
+  "preferNameDirectory": true,
+  "symbols": {
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If specified, skips the automatic restore of the project on create.",
+      "defaultValue": "false"
+    }
+  },
+  "primaryOutputs": [{ "path": "BaseRepository.sln" }],
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "exclude": [
+            ".git/**",
+            "**/bin/**",
+            "**/obj/**",
+            "**/*.db",
+            "**/*.db-shm",
+            "**/*.db-wal",
+            "template-pack/**",
+            ".template.config/localize/**",
+            "*.nupkg"
+          ]
+        }
+      ]
+    }
+  ],
+  "postActions": [
+    {
+      "condition": "(!skipRestore)",
+      "description": "Restore NuGet packages required by this project.",
+      "manualInstructions": [{ "text": "Run 'dotnet restore'" }],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}
