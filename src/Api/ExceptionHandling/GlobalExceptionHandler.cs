@@ -56,6 +56,7 @@ public class GlobalExceptionHandler : IExceptionHandler
     {
         NotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
         ConflictException => (StatusCodes.Status409Conflict, "Conflict"),
+        AuthenticationFailedException => (StatusCodes.Status401Unauthorized, "Authentication Failed"),
         BusinessRuleException => (StatusCodes.Status422UnprocessableEntity, "Business Rule Violation"),
         ValidationException => (StatusCodes.Status400BadRequest, "Validation Failed"),
         _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred")

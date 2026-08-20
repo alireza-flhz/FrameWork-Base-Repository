@@ -66,19 +66,22 @@ Then check:
 All four work with zero configuration. `TodoItem` (see
 [Template-ization](#template-ization-phase-5)) is real and SQLite-backed
 (`app.db`, created automatically), but — like everything routed through
-`BaseCrudController` — requires a bearer token. Set a signing key first:
+`BaseCrudController` — requires a bearer token. Set a signing key, then get
+one from [Auth](#auth-base-not-a-sample) itself instead of hand-crafting one:
 
 ```
 dotnet user-secrets init --project src/Api
 dotnet user-secrets set Jwt:SigningKey "<at least 32 bytes>" --project src/Api
 dotnet run --project src/Api
+
+curl -X POST http://localhost:5000/api/v1/auth/register \
+  -H "Content-Type: application/json" -d "{\"email\":\"me@example.com\",\"password\":\"correct-horse-battery\"}"
+# => { "userId": 1, "email": "me@example.com", "token": "...", "expiresAt": "..." }
+
 curl -X POST http://localhost:5000/api/v1/todo-items \
-  -H "Authorization: Bearer <a token signed with that key, issuer/audience Jwt:Issuer/Jwt:Audience>" \
+  -H "Authorization: Bearer <the token from above>" \
   -H "Content-Type: application/json" -d "{\"title\":\"buy milk\"}"
 ```
-
-(`Jwt:Issuer`/`Jwt:Audience` default to `BaseRepository.Api`, or whatever
-your scaffolded project renamed them to.)
 
 ## Test it
 
@@ -234,6 +237,42 @@ every token failed validation with "no security keys were provided" even
 though the key was configured — fixed by reading configuration lazily
 inside the `AddJwtBearer` options delegate instead of capturing it into a
 variable beforehand, which is also just better practice regardless of tests.
+
+## Auth (base, not a sample)
+
+Register/login is something almost every API needs, so — unlike `TodoItem` —
+it's part of the base template, not a sample to delete later.
+
+- **`User`** (Domain) — `Email` + `PasswordHash`, plus `IAuditableEntity`.
+  `AppDbContext` configures a unique index on `Email`.
+- **`POST /api/v1/auth/register`** / **`POST /api/v1/auth/login`**
+  (`AuthController`, `[AllowAnonymous]`) — both take `{ "email", "password" }`
+  and return `{ userId, email, token, expiresAt }`. `RegisterCommand`/
+  `LoginCommand` are bespoke `IRequest<AuthResultDto>` handlers (not generic
+  CRUD — auth has real business rules), under
+  `BaseRepository.Application.Auth`.
+- **`IPasswordHasher`** (Application interface, Infrastructure implementation
+  via **BCrypt.Net-Next**, MIT) — passwords are never stored or compared in
+  plain text.
+- **`IJwtTokenGenerator`** (Application interface, Infrastructure
+  implementation) — issues a token signed with the same `Jwt:SigningKey`
+  `Program.cs` already validates incoming tokens against, read lazily for the
+  same reason as the `AddJwtBearer` options delegate.
+- Registering with an email already taken → `ConflictException` (409, and a
+  DB-level unique-index safety net behind it). Login with a wrong password
+  *or* an unknown email both throw the same `AuthenticationFailedException`
+  (401) — the response doesn't reveal whether an email is registered.
+- Both `AddApplication()` (handlers) and `AddInfrastructure()` (hasher/token
+  generator) register Auth automatically — no `AddCrudHandlers<>()`-style
+  opt-in call needed, since every project needs it.
+
+Proven in all three test layers: `BaseRepository.Application.UnitTests`
+(register/login against fake hasher/token generator + an in-memory
+repository), `BaseRepository.Infrastructure.IntegrationTests` (real BCrypt
+hashing, real JWT claims/expiry, and the DB unique-index constraint via a
+real SQLite `AppDbContext`), and `BaseRepository.Api.FunctionalTests`
+(`AuthEndToEndTests` — register → login → the issued token actually reaching
+a protected endpoint — through the real, unmodified `Program.cs`).
 
 ## Template-ization (Phase 5)
 

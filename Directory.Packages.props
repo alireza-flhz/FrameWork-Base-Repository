@@ -33,6 +33,9 @@
     <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1" />
     <PackageVersion Include="Asp.Versioning.OpenApi" Version="10.2.2" />
 
+    <!-- Auth: password hashing (MIT) -->
+    <PackageVersion Include="BCrypt.Net-Next" Version="4.2.0" />
+
     <!-- Testing -->
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
