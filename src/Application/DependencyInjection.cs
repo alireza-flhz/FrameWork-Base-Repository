@@ -28,6 +28,7 @@ public static class DependencyInjection
         // is enough, as long as AddPersistence<>()/AddInfrastructure() are also wired up.
         services.AddScoped<IRequestHandler<RegisterCommand, AuthResultDto>, RegisterCommandHandler>();
         services.AddScoped<IRequestHandler<LoginCommand, AuthResultDto>, LoginCommandHandler>();
+        services.AddScoped<IRequestHandler<UpdatePhoneNumberCommand, UserProfileDto>, UpdatePhoneNumberCommandHandler>();
 
         return services;
     }

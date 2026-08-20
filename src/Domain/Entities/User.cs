@@ -11,6 +11,10 @@ public class User : BaseEntity<int>, IAuditableEntity
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
 
+    // Email is the only way to register/log in - this is set afterward, via
+    // Application.Auth.UpdatePhoneNumberCommand, once the user already has an account.
+    public string? PhoneNumber { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
     public DateTimeOffset? LastModifiedAt { get; set; }

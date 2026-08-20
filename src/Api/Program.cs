@@ -1,7 +1,9 @@
 using System.Text;
 using Asp.Versioning;
 using BaseRepository.Api.ExceptionHandling;
+using BaseRepository.Api.Services;
 using BaseRepository.Application;
+using BaseRepository.Application.Abstractions;
 using BaseRepository.Application.TodoItems;
 using BaseRepository.Domain.Entities;
 using BaseRepository.Infrastructure;
@@ -26,6 +28,11 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks();
+
+// ICurrentUser (Auth's profile endpoints) needs HttpContext, which is an ASP.NET Core concern -
+// implemented here in Api, not Infrastructure, to keep Infrastructure free of hosting deps.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 // The template's example entity - see TodoItem's doc comment for what to delete once you
 // don't need it any more. Read lazily for the same reason the JWT signing key is (see below).

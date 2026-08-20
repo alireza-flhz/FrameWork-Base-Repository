@@ -21,5 +21,9 @@ public class AppDbContext : BaseDbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+
+        // Nullable, so multiple users can each have no phone number set - only a non-null
+        // duplicate is rejected (standard SQL unique-index semantics: NULLs don't collide).
+        modelBuilder.Entity<User>().HasIndex(u => u.PhoneNumber).IsUnique();
     }
 }
