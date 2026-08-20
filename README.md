@@ -243,8 +243,11 @@ variable beforehand, which is also just better practice regardless of tests.
 Register/login is something almost every API needs, so — unlike `TodoItem` —
 it's part of the base template, not a sample to delete later.
 
-- **`User`** (Domain) — `Email` + `PasswordHash`, plus `IAuditableEntity`.
-  `AppDbContext` configures a unique index on `Email`.
+- **`User`** (Domain) — `Email` + `PasswordHash` + an optional `PhoneNumber`,
+  plus `IAuditableEntity`. `AppDbContext` configures a unique index on both
+  `Email` and `PhoneNumber` (the latter nullable — NULLs don't collide with
+  each other under a unique index, so any number of users can each skip
+  setting one).
 - **`POST /api/v1/auth/register`** / **`POST /api/v1/auth/login`**
   (`AuthController`, `[AllowAnonymous]`) — both take `{ "email", "password" }`
   and return `{ userId, email, token, expiresAt }`. `RegisterCommand`/
@@ -265,14 +268,72 @@ it's part of the base template, not a sample to delete later.
 - Both `AddApplication()` (handlers) and `AddInfrastructure()` (hasher/token
   generator) register Auth automatically — no `AddCrudHandlers<>()`-style
   opt-in call needed, since every project needs it.
+- **Email is the only way to register or log in** — a phone number is never a
+  replacement identifier. Once signed in, a user can attach/change/clear
+  their own phone number via **`PUT /api/v1/auth/me/phone`**
+  (`ProfileController`, `{ "phoneNumber": "...", "region": "IR" }` →
+  `{ userId, email, phoneNumber }`). Unlike `AuthController`, this one
+  requires a bearer token — the user being edited comes from the token's
+  claims via **`ICurrentUser`** (`Application` interface, implemented in
+  `Api` as `CurrentUser` because it needs `HttpContext`), never from a route
+  or body parameter, so nobody can edit someone else's profile this way. A
+  number already taken by another user → 409, same as email on register.
+  The same pattern (an authenticated `ICurrentUser`-driven command) is how
+  you'd add more self-service profile fields later.
+- **Any country, not just Iran.** Phone numbers are validated/normalized by
+  **`IPhoneNumberValidator`** (`Application` interface, `Infrastructure`
+  implementation wrapping **libphonenumber-csharp**, Apache-2.0 — the same
+  engine behind Android's own dialer) and stored as **E.164**
+  (`+989123456789`, `+16502530000`, ...). Pass a number already in
+  international form and leave `region` out, or pass a local-format number
+  with its ISO 3166-1 alpha-2 `region` (`"IR"`, `"US"`, `"GB"`, ...) — a
+  local-format number with no region is rejected as ambiguous rather than
+  guessed at.
 
 Proven in all three test layers: `BaseRepository.Application.UnitTests`
-(register/login against fake hasher/token generator + an in-memory
-repository), `BaseRepository.Infrastructure.IntegrationTests` (real BCrypt
-hashing, real JWT claims/expiry, and the DB unique-index constraint via a
-real SQLite `AppDbContext`), and `BaseRepository.Api.FunctionalTests`
-(`AuthEndToEndTests` — register → login → the issued token actually reaching
-a protected endpoint — through the real, unmodified `Program.cs`).
+(register/login/phone-update against fake hasher/token generator/current-
+user/phone-validator + an in-memory repository), `BaseRepository.Infrastructure.IntegrationTests`
+(real BCrypt hashing, real JWT claims/expiry, both unique-index constraints
+via a real SQLite `AppDbContext`, and the real `PhoneNumberValidator` against
+actual Iranian/US/UK/German/Australian numbers), and
+`BaseRepository.Api.FunctionalTests` (`AuthEndToEndTests` / `ProfileEndToEndTests`
+— register → login → the issued token reaching a protected endpoint, and
+register → update phone (international form, and local-format + region) →
+conflict-on-reuse → clear — through the real, unmodified `Program.cs`).
+
+## Utilities (Iranian localization helpers)
+
+A few small, genuinely reusable helpers under `BaseRepository.Domain.Common`
+— zero-dependency (calendar conversion uses .NET's own `PersianCalendar`/
+`HijriCalendar`, already in the BCL, and the mobile-number check below is a
+plain regex) and opt-in, not wired into anything by default. Unlike Auth,
+these are regional, not universal — pull in what your project actually
+needs. (For phone numbers from *any* country, see `IPhoneNumberValidator`
+under [Auth](#auth-base-not-a-sample) instead — this one is Iran-only, on
+purpose, for when that's all you need and you'd rather not pull in a bigger
+library for it.)
+
+- **`IranianCalendar.ToShamsi`/`FromShamsi`/`ToHijri`/`FromHijri`** — convert
+  between `DateTime` (Gregorian) and Shamsi/Hijri `(Year, Month, Day)` tuples.
+  Note `HijriCalendar` uses a fixed tabular algorithm, not the official
+  Umm al-Qura calendar, so it can be a day off from observation-based dates
+  for religious occasions.
+- **`IranianNationalCode.IsValid(string)`** — validates an Iranian national
+  ID's (کد ملی) checksum digit (and rejects all-same-digit strings, which
+  pass the checksum by construction but are never real).
+- **`PersianMobileNumber.IsValid(string)`** / **`.Normalize(string)`** —
+  Iran-only, zero-dependency: accepts the common prefixed forms (`+98`,
+  `0098`, `98`, `0`) and normalizes all of them to the local 11-digit form
+  (`09XXXXXXXXX`).
+- **FluentValidation rules** (`BaseRepository.Application.Common.Validation`)
+  wrap the two validators above for direct use in any `AbstractValidator<T>`:
+  `RuleFor(x => x.Phone).PersianMobileNumber();` /
+  `RuleFor(x => x.NationalCode).IranianNationalCode();`.
+
+Proven in `BaseRepository.Domain.UnitTests` (round-trip calendar conversions,
+a hand-derived valid/invalid national code, every accepted mobile-number
+form) and `BaseRepository.Application.UnitTests` (the FluentValidation rules
+actually pass/fail through a real validator).
 
 ## Template-ization (Phase 5)
 

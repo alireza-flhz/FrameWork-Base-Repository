@@ -36,6 +36,9 @@
     <!-- Auth: password hashing (MIT) -->
     <PackageVersion Include="BCrypt.Net-Next" Version="4.2.0" />
 
+    <!-- Phone: international validation/normalization, C# port of Google's libphonenumber (Apache-2.0) -->
+    <PackageVersion Include="libphonenumber-csharp" Version="9.0.37" />
+
     <!-- Testing -->
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />

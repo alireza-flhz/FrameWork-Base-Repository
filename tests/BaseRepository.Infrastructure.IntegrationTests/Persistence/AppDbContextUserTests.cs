@@ -58,4 +58,28 @@ public class AppDbContextUserTests : IDisposable
 
         Assert.Equal(2, await _context.Users.CountAsync());
     }
+
+    [Fact]
+    public async Task SavingTwoUsers_WithTheSamePhoneNumber_ThrowsBecauseOfTheUniqueIndex()
+    {
+        _context.Users.Add(new User { Email = "one@example.com", PasswordHash = "x", PhoneNumber = "09123456789" });
+        await _context.SaveChangesAsync();
+
+        _context.Users.Add(new User { Email = "two@example.com", PasswordHash = "y", PhoneNumber = "09123456789" });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => _context.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task SavingMultipleUsers_WithNoPhoneNumber_Succeeds()
+    {
+        // NULL doesn't collide with NULL under a unique index - otherwise no second user
+        // could ever skip setting a phone number.
+        _context.Users.Add(new User { Email = "one@example.com", PasswordHash = "x" });
+        _context.Users.Add(new User { Email = "two@example.com", PasswordHash = "y" });
+
+        await _context.SaveChangesAsync();
+
+        Assert.Equal(2, await _context.Users.CountAsync());
+    }
 }
