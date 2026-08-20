@@ -4,8 +4,9 @@
 
 A fully generic Clean Architecture starter for .NET — the "basics every project
 needs" (layering, a Result type, pagination, health checks, a test project per
-layer) wired up once, so a new project starts from a working skeleton instead
-of from scratch.
+layer, and working register/login with self-service profile management) wired
+up once, so a new project starts from a working skeleton instead of from
+scratch.
 
 - Targets **.NET 10**.
 - Central package version management (`Directory.Packages.props`) — no
@@ -102,8 +103,9 @@ integration tests for Infrastructure, functional tests for the API via
   (`TotalPages`, `HasNextPage`, `HasPreviousPage`) computed once, reused
   everywhere.
 - `DomainException` and its `NotFoundException` / `ConflictException` /
-  `BusinessRuleException` subtypes — the vocabulary the API layer will
-  translate into HTTP status codes starting Phase 3.
+  `BusinessRuleException` / `AuthenticationFailedException` subtypes — the
+  vocabulary the API layer translates into HTTP status codes (see
+  `GlobalExceptionHandler` under [API](#api-api)).
 - `BaseEntity<TKey>` (`BaseRepository.Domain.Entities`) — the base every
   entity derives from. `IAuditableEntity` / `ISoftDelete` are opt-in
   interfaces an entity implements to get automatic audit stamping /
@@ -183,9 +185,10 @@ generic handlers including the not-found and pagination-metadata paths.
   `Create` returns a proper `Location` header; otherwise it still returns 201,
   just without one.
 - **`GlobalExceptionHandler`** (`IExceptionHandler`) — maps `NotFoundException`
-  → 404, `ConflictException` → 409, `BusinessRuleException` → 422,
-  `FluentValidation.ValidationException` → 400 (with a per-property `errors`
-  extension), anything else → 500. All as RFC 7807 `ProblemDetails`.
+  → 404, `ConflictException` → 409, `AuthenticationFailedException` → 401,
+  `BusinessRuleException` → 422, `FluentValidation.ValidationException` → 400
+  (with a per-property `errors` extension), anything else → 500. All as
+  RFC 7807 `ProblemDetails`.
 - **OpenAPI**: the built-in `Microsoft.AspNetCore.OpenApi` (`/openapi/v1.json`)
   + **Scalar** (`/scalar/v1`) for an interactive UI — both MIT, no Swashbuckle
   needed.
@@ -422,6 +425,17 @@ per factory instance.
 Generic CRUD (Phases 1-3) covers most simple/master-data entities. Anything
 with real business rules is expected to get a bespoke Application handler or
 Api controller — the generic path is the default, not a mandate.
+
+**Since Phase 6**, two more things landed as base (not phased, since they
+weren't part of the original roadmap, but real and tested the same way as
+everything above): [Auth](#auth-base-not-a-sample) — register/login,
+password hashing, JWT issuing, and a self-service profile endpoint for an
+international (not Iran-only) phone number — and the
+[Iranian localization helpers](#utilities-iranian-localization-helpers)
+(calendar conversion, national-code/mobile-number validators). Test count
+has grown accordingly (135 as of the latest addition) — run `dotnet test`
+for the current number rather than trusting any figure quoted above, since
+those are point-in-time notes from when each phase/feature was built.
 
 ## License
 
